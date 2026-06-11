@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【Future Rhapsody】Wish Cloud Generator 11.4</title>
+    <style>
+        /* ========================================================== */
+        /* ✨ 策展人專區一：客製化字體載入區 */
+        /* ========================================================== */
+        @font-face {
+            font-family: 'MyCustomFont';
+            src: url('Nowster Cute.ttf') format('truetype'); /* ⚠️ 確保與您的 ttf 檔名完全一致 */
+        }
+
+        * { box-sizing: border-box; }
+        
+        /* 根除雜音防禦機制 */
+        html {
+            color: transparent;
+            font-size: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: initial;
+            font-size: 1rem;
+        }
+
+        /* 文字雲外殼：純白底、圓角化、加溫柔陰影 */
+        .wordcloud-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 850px;
+            height: 480px;
+            background: #FFFFFF; 
+            border-radius: 20px; 
+            box-shadow: 0 12px 40px rgba(169, 156, 199, 0.25);
+            overflow: hidden;
+        }
+
+        /* 複合圖層：獨立的雲朵標題複合區 */
+        .title-cloud-container {
+            position: absolute;
+            top: -5px;
+            left: 5px;
+            z-index: 50; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 360px;
+            height: 120px;
+            transform-origin: top left;
+        }
+
+        .title-cloud-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* 鎖定大辨識度大標題 */
+        .title-cloud-text {
+            position: absolute;
+            left: 44.5%;
+            top: 54%;
+            transform: translate(-50%, -50%);
+            font-family: 'MyCustomFont', 'Noto Sans TC', sans-serif;
+            font-weight: bold;
+            font-size: 26px; /* 稍微調整英文字型寬度比例 */
+            color: #A39E93; 
+            white-space: nowrap;
+            pointer-events: none; 
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* 手機版 (寬度小於500) 專屬響應式優化：調大雲朵外框比例 */
+        @media (max-width: 500px) {
+            .title-cloud-container {
+                transform: scale(0.92); 
+            }
+            .title-cloud-text {
+                font-size: 24px; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wordcloud-wrapper">
+        <div class="title-cloud-container">
+            <img src="cloud.gif" alt="Cloud Layout">
+            <div class="title-cloud-text">What is everyone wishing for?</div>
+        </div>
+        
+        <canvas id="cloudCanvas"></canvas>
+    </div>
+
+    <script>
+        // ===================================================================
+        // ✨ 策展人專區二：手動精選回答（英文口語精簡版，固定最大的12個）
+        // 💡 提示：字詞之間輸入「兩個半形空格」，程式就會依您的意思強制分行！
+        // ===================================================================
+        const bigWords = [
+            "Catch a monster fish  in Chengkung Lake", 
+            "Fake it till I make it  in Calculus",       
+            "8 hours of sleep  EVERY SINGLE DAY", 
+            "Finally getting a  boyfriend/girlfriend", 
+            "Becoming too hot  to handle",       
+            "Taking a legendary  selfie with President", 
+            "Hitting 100k subs  on YouTube", 
+            "My bike  NEVER gets stolen", 
+            "Graduating on time  in 2 years", 
+            "Passing thesis defense  on the first try", 
+            "NTHU winning  the Meichu Games!", 
+            "Securing the Presidential  Scholarship Award"
+        ];
+
+        // ===================================================================
+        // ✨ 策展人專區三：背景填充小字（道地校園活潑美語短詞）
+        // ===================================================================
+        const smallWordsPool = [
+            "All Pass", "Good vibes  only", "Dream internship", "Silicon Valley of TW", "TSMC call me", "MediaTek recruit me", "Boating in lake", 
+            "Karaoke night", "Library all day", "Late-night food street", "Shuimu food upgrade", "Foodie life", "Big City shopping", "Kiting in wind", 
+            "Safe travels", "Perfect hair day", "Sleeping in", "Full credits", "Course registration success", "Riding a meatball", "Study hard", "No extension",
+            "Meichu MVP", "Midnight road trip", "Taiwan road trip", "100%", "Big Luck", "Future Rhapsody", "Dreams come true", "E-people assemble", "Confession",
+            "No regrets", "Keep fighting", "Dorm lottery winner", "AC freezing cold", "Campus WiFi super fast", "No late for 8AM class", "Proud Introvert",
+            "All-pass candy", "Typhoon day holiday", "Making big money", "No lost umbrella", "Dating life", "Skipping class safely", "Hsinchu Zoo trip"
+        ];
+
+        // 🎨 莫蘭迪繽紛色系矩陣
+        const colorPalette = [
+            "#6A51A3", "#8067B7", "#9A7EC9", "#B39DDB", "#D1C4E9", 
+            "#1F6596", "#3A82B8", "#60A0D4", "#90CAF9", "#C1E2FF", 
+            "#D47A2A", "#E69549", "#F5B070", "#FFCC80", "#FFE0B2", 
+            "#2E6930", "#438A47", "#66BB6A", "#A5D6A7", "#C8E6C9", 
+            "#B84A6E", "#D1648A", "#E682A5", "#F48FB1", "#F8BBD0"  
+        ];
+
+        const canvas = document.getElementById('cloudCanvas');
+        const ctx = canvas.getContext('2d');
+        let words = [];
+        let activeIndex = -1;
+        let highlightProgress = 0;
+        let dpr = window.devicePixelRatio || 1;
+        let scaleFactor = 1; 
+
+        const fontName = "'MyCustomFont', 'Noto Sans TC', sans-serif";
+
+        const cloudImg = new Image();
+        cloudImg.src = 'cloud.gif'; 
+
+        document.fonts.ready.then(() => {
+            initWordCloud();
+        });
+
+        function initWordCloud() {
+            resizeCanvas();
+            generateLayout();
+            drawLoop();
+            
+            setInterval(triggerSpotlight, 3800);
+            setTimeout(triggerSpotlight, 1500); 
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            dpr = window.devicePixelRatio || 1;
+            scaleFactor = rect.width < 500 ? 0.72 : 1.0;
+
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+        }
+
+        // 度量器：完美支援手動「雙空格」分行與英文保底斷行
+        function measureWishText(text, size) {
+            ctx.save();
+            ctx.font = `bold ${size}px ${fontName}`;
+            let lines = [];
+            
+            // 🛑 優先檢查字詞之間是否包含「2個以上的半形空格」手動斷行
+            if (text.includes('  ')) {
+                lines = text.split(/ {2,}/).map(line => line.trim()).filter(line => line.length > 0);
+            } 
+            // 🛑 英文保底自動換行機制：若超過2個英文單字（Words），自動對半拆分
+            else {
+                const wordsArr = text.split(' ');
+                if (wordsArr.length > 2) {
+                    const mid = Math.ceil(wordsArr.length / 2);
+                    const firstLine = wordsArr.slice(0, mid).join(' ');
+                    const secondLine = wordsArr.slice(mid).join(' ');
+                    lines.push(firstLine);
+                    lines.push(secondLine);
+                } else {
+                    lines.push(text);
+                }
+            }
+
+            let maxWidth = 0;
+            lines.forEach(line => {
+                const w = ctx.measureText(line).width;
+                if (w > maxWidth) maxWidth = w;
+            });
+            ctx.restore();
+
+            const h = lines.length > 1 ? (size * (1 + (lines.length - 1) * 0.9)) : size;
+            return { lines, width: maxWidth + 14, height: h + 10 };
+        }
+
+        function generateLayout() {
+            words = [];
+            const W = canvas.width / dpr;
+            const H = canvas.height / dpr;
+            
+            // 安全防撞天花板下推，確保與上方雲朵拉開完美物理間距
+            const titleHeightBoundary = 135 * scaleFactor; 
+
+            // 1. 部署 12 個精選大字
+            bigWords.forEach((text, idx) => {
+                // 考慮到英文單字寬度較寬，稍微下修基準字體大小，排版會更精緻飽滿
+                const baseSize = 36 - (idx * 1.0); 
+                const size = baseSize * scaleFactor; 
+                addWordRandomScatter(text, size, true, idx, W * 0.15, W * 0.85, titleHeightBoundary, H * 0.82, 35 * scaleFactor);
+            });
+
+            // 2. 部署填充小字
+            const maxSmallWords = 50; // 調整總數使英文拉寬後仍能舒適防撞
+            let attempts = 0;
+            
+            while (words.length < (bigWords.length + maxSmallWords) && attempts < 4000) {
+                attempts++;
+                const text = smallWordsPool[attempts % smallWordsPool.length];
+                const baseSize = 18 + (attempts % 5) + (Math.random() * 0.5);
+                const size = baseSize * scaleFactor; 
+                
+                if (addWordRandomScatter(text, size, false, attempts, W * 0.05, W * 0.95, titleHeightBoundary, H * 0.94, 15 * scaleFactor)) {
+                }
+            }
+        }
+
+        function addWordRandomScatter(text, size, isHighlight, colorSeed, minX, maxX, minY, maxY, safetyBuffer) {
+            const dims = measureWishText(text, size);
+            const w = dims.width;
+            const h = dims.height;
+
+            const W = canvas.width / dpr;
+            const H = canvas.height / dpr;
+            
+            let localAttempts = 0;
+            while (localAttempts < 500) {
+                localAttempts++;
+                const x = Math.random() * (maxX - minX) + minX;
+                const y = Math.random() * (maxY - minY) + minY;
+
+                if (x - w/2 < 12 || x + w/2 > W - 12 || y - h/2 < minY || y + h/2 > H - 12) {
+                    continue;
+                }
+
+                let isOverlapping = false;
+                for (let i = 0; i < words.length; i++) {
+                    const other = words[i];
+                    if (Math.abs(x - other.x) < (w + other.w)/2 + safetyBuffer && Math.abs(y - other.y) < (h + other.h)/2 + safetyBuffer) {
+                        isOverlapping = true;
+                        break;
+                    }
+                }
+
+                if (!isOverlapping) {
+                    const maxAngle = (isHighlight || dims.lines.length > 1) ? (3 * Math.PI / 180) : (25 * Math.PI / 180);
+                    const rotateAngle = (Math.random() * 2 - 1) * maxAngle;
+
+                    const colorIndex = (colorSeed * 7 + localAttempts) % colorPalette.length;
+                    const color = colorPalette[colorIndex];
+                    
+                    words.push({
+                        text: text, lines: dims.lines, baseSize: size, currentSize: size,
+                        x: x, y: y, w: w, h: h,
+                        color: color, isHighlight: isHighlight,
+                        angle: rotateAngle
+                    });
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function drawLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(dpr, dpr); 
+
+            // 第一層：普通文字繪製
+            words.forEach((word, idx) => {
+                if (idx === activeIndex) return; 
+                ctx.save();
+                ctx.translate(word.x, word.y);
+                ctx.rotate(word.angle);
+
+                word.currentSize += (word.baseSize - word.currentSize) * 0.1;
+                ctx.fillStyle = word.color;
+                ctx.font = `bold ${word.currentSize}px ${fontName}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (word.lines.length > 1) {
+                    word.lines.forEach((line, lIdx) => {
+                        const offset = (lIdx - (word.lines.length - 1) / 2) * (word.currentSize * 1.25);
+                        ctx.fillText(line, 0, offset);
+                    });
+                } else {
+                    ctx.fillText(word.text, 0, 0);
+                }
+                ctx.restore();
+            });
+
+            // 第二層：置頂自適應正圓形聚光燈（安全邊緣牆壁防擦邊反彈）
+            if (activeIndex !== -1) {
+                const word = words[activeIndex];
+                ctx.save();
+                
+                const targetSize = word.baseSize * 1.12; 
+                word.currentSize += (targetSize - word.currentSize) * 0.1;
+                
+                const textDiagonal = Math.sqrt(word.w * word.w + word.h * word.h);
+                const radius = (textDiagonal / 2) + (18 * scaleFactor); 
+                
+                let renderX = word.x;
+                let renderY = word.y;
+                
+                const W = canvas.width / dpr;
+                const H = canvas.height / dpr;
+
+                // 🔒 嚴格限制高光圓圈的最上緣，絕對不可小於 topCeiling，防止碰觸到放大的雲朵標題
+                const topCeiling = 120 * scaleFactor; 
+
+                if (renderX - radius < 15) renderX = radius + 15;
+                if (renderX + radius > W - 15) renderX = W - radius - 15;
+                if (renderY - radius < topCeiling) renderY = radius + topCeiling; 
+                if (renderY + radius > H - 15) renderY = H - radius - 15;
+
+                ctx.translate(renderX, renderY);
+                ctx.rotate(word.angle);
+
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(95, 95, 95, ${0.78 * highlightProgress})`; 
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${highlightProgress})`;
+                ctx.font = `bold ${word.currentSize}px ${fontName}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (word.lines.length > 1) {
+                    word.lines.forEach((line, lIdx) => {
+                        const offset = (lIdx - (word.lines.length - 1) / 2) * (word.currentSize * 1.25);
+                        ctx.fillText(line, 0, offset);
+                    });
+                } else {
+                    ctx.fillText(word.text, 0, 0);
+                }
+                ctx.restore();
+            }
+
+            ctx.restore();
+            requestAnimationFrame(drawLoop);
+        }
+
+        function triggerSpotlight() {
+            if (words.length === 0) return;
+            
+            let nextIdx;
+            do {
+                nextIdx = Math.floor(Math.random() * words.length);
+            } while (nextIdx === activeIndex && words.length > 1);
+
+            activeIndex = nextIdx;
+            highlightProgress = 0;
+            
+            let fadeIn = setInterval(() => {
+                highlightProgress += 0.06;
+                if (highlightProgress >= 1) {
+                    highlightProgress = 1;
+                    clearInterval(fadeIn);
+                }
+            }, 25);
+
+            setTimeout(() => {
+                let fadeOut = setInterval(() => {
+                    highlightProgress -= 0.06;
+                    if (highlightProgress <= 0) {
+                        highlightProgress = 0;
+                        activeIndex = -1; 
+                        clearInterval(fadeOut);
+                    }
+                }, 25);
+            }, 2300);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            generateLayout();
+        });
+    </script>
+</body>
+</html>
