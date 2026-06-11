@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【Future Rhapsody】Wish Cloud Generator 11.4</title>
+    <title>【Future Rhapsody】Wish Cloud Generator 11.5</title>
     <style>
         /* ========================================================== */
         /* ✨ 策展人專區一：客製化字體載入區 */
         /* ========================================================== */
         @font-face {
             font-family: 'MyCustomFont';
-            src: url('Nowster Cute.ttf') format('truetype'); /* ⚠️ 確保與您的 ttf 檔名完全一致 */
+            src: url('StarPandaKidsBeta2.1.ttf') format('truetype'); /* ⚠️ 確保與您的 ttf 檔名完全一致 */
         }
 
         * { box-sizing: border-box; }
@@ -66,7 +66,7 @@
             object-fit: contain;
         }
 
-        /* 鎖定大辨識度大標題 */
+        /* 鎖定大標題 */
         .title-cloud-text {
             position: absolute;
             left: 44.5%;
@@ -74,7 +74,7 @@
             transform: translate(-50%, -50%);
             font-family: 'MyCustomFont', 'Noto Sans TC', sans-serif;
             font-weight: bold;
-            font-size: 26px; /* 稍微調整英文字型寬度比例 */
+            font-size: 26px; 
             color: #A39E93; 
             white-space: nowrap;
             pointer-events: none; 
@@ -86,13 +86,13 @@
             display: block;
         }
 
-        /* 手機版 (寬度小於500) 專屬響應式優化：調大雲朵外框比例 */
+        /* 手機版 (寬度小於500) 專屬響應式優化：微調雲朵外框比例與文字，防邊緣裁切 */
         @media (max-width: 500px) {
             .title-cloud-container {
-                transform: scale(0.92); 
+                transform: scale(0.7); /* 🔒 調降縮放比例，防止手機版小太陽與英文字體衝出邊界 */
             }
             .title-cloud-text {
-                font-size: 24px; 
+                font-size: 18px; /* 🔒 降低為 18px 精緻大小，確保完整顯示不切字 */
             }
         }
     </style>
@@ -110,11 +110,10 @@
 
     <script>
         // ===================================================================
-        // ✨ 策展人專區二：手動精選回答（英文口語精簡版，固定最大的12個）
-        // 💡 提示：字詞之間輸入「兩個半形空格」，程式就會依您的意思強制分行！
+        // ✨ 策展人專區二：手動精選回答（固定最大的12個，若沒手動加雙空格，會自動智慧分3行！）
         // ===================================================================
         const bigWords = [
-            "Catch a monster fish  in Chengkung Lake", 
+            "Catch a monster fish  in Chenggong Lake", 
             "Fake it till I make it  in Calculus",       
             "8 hours of sleep  EVERY SINGLE DAY", 
             "Finally getting a  boyfriend/girlfriend", 
@@ -129,7 +128,7 @@
         ];
 
         // ===================================================================
-        // ✨ 策展人專區三：背景填充小字（道地校園活潑美語短詞）
+        // ✨ 策展人專區三：背景填充小字
         // ===================================================================
         const smallWordsPool = [
             "All Pass", "Good vibes  only", "Dream internship", "Silicon Valley of TW", "TSMC call me", "MediaTek recruit me", "Boating in lake", 
@@ -186,25 +185,35 @@
             canvas.style.height = rect.height + 'px';
         }
 
-        // 度量器：完美支援手動「雙空格」分行與英文保底斷行
+        // 🔮 智慧分3行演算法度量器
         function measureWishText(text, size) {
             ctx.save();
             ctx.font = `bold ${size}px ${fontName}`;
             let lines = [];
             
-            // 🛑 優先檢查字詞之間是否包含「2個以上的半形空格」手動斷行
+            // 🛑 核心規則一：優先檢查手動「2個半形空格」分行
             if (text.includes('  ')) {
                 lines = text.split(/ {2,}/).map(line => line.trim()).filter(line => line.length > 0);
             } 
-            // 🛑 英文保底自動換行機制：若超過2個英文單字（Words），自動對半拆分
+            // 🛑 核心規則二：若沒有手動空格且單字量較多，自動均勻平分成「三行」
             else {
                 const wordsArr = text.split(' ');
-                if (wordsArr.length > 2) {
-                    const mid = Math.ceil(wordsArr.length / 2);
-                    const firstLine = wordsArr.slice(0, mid).join(' ');
-                    const secondLine = wordsArr.slice(mid).join(' ');
-                    lines.push(firstLine);
-                    lines.push(secondLine);
+                if (wordsArr.length >= 3) {
+                    // 將單字總數盡可能平均切成三份
+                    const totalWords = wordsArr.length;
+                    const chunk1 = Math.ceil(totalWords / 3);
+                    const chunk2 = Math.ceil((totalWords - chunk1) / 2);
+                    
+                    const line1 = wordsArr.slice(0, chunk1).join(' ');
+                    const line2 = wordsArr.slice(chunk1, chunk1 + chunk2).join(' ');
+                    const line3 = wordsArr.slice(chunk1 + chunk2).join(' ');
+                    
+                    if(line1) lines.push(line1);
+                    if(line2) lines.push(line2);
+                    if(line3) lines.push(line3);
+                } else if (wordsArr.length === 2) {
+                    lines.push(wordsArr[0]);
+                    lines.push(wordsArr[1]);
                 } else {
                     lines.push(text);
                 }
@@ -217,7 +226,7 @@
             });
             ctx.restore();
 
-            const h = lines.length > 1 ? (size * (1 + (lines.length - 1) * 0.9)) : size;
+            const h = lines.length > 1 ? (size * (1 + (lines.length - 1) * 0.95)) : size;
             return { lines, width: maxWidth + 14, height: h + 10 };
         }
 
@@ -226,25 +235,24 @@
             const W = canvas.width / dpr;
             const H = canvas.height / dpr;
             
-            // 安全防撞天花板下推，確保與上方雲朵拉開完美物理間距
+            // 加強防撞天花板，留足上方雲朵所需的空間
             const titleHeightBoundary = 135 * scaleFactor; 
 
-            // 1. 部署 12 個精選大字
+            // 1. 部署 12 個精選大字（🔮 縮減英文字體規格，手機版微調至 20px~26px）
             bigWords.forEach((text, idx) => {
-                // 考慮到英文單字寬度較寬，稍微下修基準字體大小，排版會更精緻飽滿
-                const baseSize = 36 - (idx * 1.0); 
+                const baseSize = 34 - (idx * 0.9); 
                 const size = baseSize * scaleFactor; 
-                addWordRandomScatter(text, size, true, idx, W * 0.15, W * 0.85, titleHeightBoundary, H * 0.82, 35 * scaleFactor);
+                addWordRandomScatter(text, size, true, idx, W * 0.15, W * 0.85, titleHeightBoundary, H * 0.82, 32 * scaleFactor);
             });
 
-            // 2. 部署填充小字
-            const maxSmallWords = 50; // 調整總數使英文拉寬後仍能舒適防撞
+            // 2. 部署填充小字（🔮 等比例收斂為 13px~17px）
+            const maxSmallWords = 50; 
             let attempts = 0;
             
             while (words.length < (bigWords.length + maxSmallWords) && attempts < 4000) {
                 attempts++;
                 const text = smallWordsPool[attempts % smallWordsPool.length];
-                const baseSize = 18 + (attempts % 5) + (Math.random() * 0.5);
+                const baseSize = 14 + (attempts % 4) + (Math.random() * 0.5);
                 const size = baseSize * scaleFactor; 
                 
                 if (addWordRandomScatter(text, size, false, attempts, W * 0.05, W * 0.95, titleHeightBoundary, H * 0.94, 15 * scaleFactor)) {
@@ -280,7 +288,7 @@
                 }
 
                 if (!isOverlapping) {
-                    const maxAngle = (isHighlight || dims.lines.length > 1) ? (3 * Math.PI / 180) : (25 * Math.PI / 180);
+                    const maxAngle = (isHighlight || dims.lines.length > 1) ? (2 * Math.PI / 180) : (24 * Math.PI / 180);
                     const rotateAngle = (Math.random() * 2 - 1) * maxAngle;
 
                     const colorIndex = (colorSeed * 7 + localAttempts) % colorPalette.length;
@@ -327,7 +335,7 @@
                 ctx.restore();
             });
 
-            // 第二層：置頂自適應正圓形聚光燈（安全邊緣牆壁防擦邊反彈）
+            // 第二層：置頂自適應正圓形聚光燈（支援手動/保底三行完美全包覆）
             if (activeIndex !== -1) {
                 const word = words[activeIndex];
                 ctx.save();
@@ -336,7 +344,7 @@
                 word.currentSize += (targetSize - word.currentSize) * 0.1;
                 
                 const textDiagonal = Math.sqrt(word.w * word.w + word.h * word.h);
-                const radius = (textDiagonal / 2) + (18 * scaleFactor); 
+                const radius = (textDiagonal / 2) + (16 * scaleFactor); 
                 
                 let renderX = word.x;
                 let renderY = word.y;
@@ -344,7 +352,6 @@
                 const W = canvas.width / dpr;
                 const H = canvas.height / dpr;
 
-                // 🔒 嚴格限制高光圓圈的最上緣，絕對不可小於 topCeiling，防止碰觸到放大的雲朵標題
                 const topCeiling = 120 * scaleFactor; 
 
                 if (renderX - radius < 15) renderX = radius + 15;
