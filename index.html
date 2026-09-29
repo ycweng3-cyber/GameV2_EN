@@ -92,7 +92,7 @@
                 transform: scale(0.75); 
             }
             .title-cloud-text {
-                font-size: 22px; /* 🔒 標題有感放大！從 18px 調大至 22px，清晰醒目 */
+                font-size: 22px; 
             }
         }
     </style>
@@ -160,7 +160,7 @@
             "Make my presence felt by others",
             "Expand connections",
             "Build rapport with   industrial leaders   and companies",
-            "Become a  trilingual (or more)  teacher!",
+            "Become a  trilingual (or more)  teacher!"
         ];
 
         // 🎨 莫蘭迪繽紛色系矩陣
@@ -286,7 +286,6 @@
         }
 
         function addWordRandomScatter(text, size, isHighlight, colorSeed, minX, maxX, minY, maxY, safetyBuffer) {
-            // 🔮 傳入 isHighlight 參數給度量器
             const dims = measureWishText(text, size, isHighlight);
             const w = dims.width;
             const h = dims.height;
